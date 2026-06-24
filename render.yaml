@@ -1,0 +1,20 @@
+services:
+  - type: web
+    name: forex-ai-signal-bridge
+    env: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn api_bridge:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: SYMBOLS
+        value: GBPUSD,EURUSD
+      - key: TIMEFRAME
+        value: 1h
+      - key: PERIOD
+        value: 180d
+      - key: MIN_SIGNAL_STRENGTH
+        value: "0.65"
+      - key: SIGNAL_OUTPUT
+        value: latest_signals.csv
+      - key: API_SHARED_SECRET
+        sync: false

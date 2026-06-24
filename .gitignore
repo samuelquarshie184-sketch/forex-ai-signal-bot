@@ -1,0 +1,12 @@
+.env
+*.pyc
+__pycache__/
+latest_signals.csv
+latest_signals.json
+test_signals.csv
+test_signals.json
+trade_journal.csv
+risk_state.json
+backtest_report.csv
+news_blackout.csv
+.DS_Store
