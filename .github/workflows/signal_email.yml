@@ -2,7 +2,7 @@ name: Forex AI signal email update
 
 on:
   schedule:
-    - cron: "*/15 * * * *"
+  - cron: "5,20,35,50 * * * *"
   workflow_dispatch:
 
 jobs:
@@ -33,7 +33,7 @@ jobs:
           PERIOD: ${{ vars.PERIOD }}
           MIN_SIGNAL_STRENGTH: ${{ vars.MIN_SIGNAL_STRENGTH }}
           SIGNAL_OUTPUT: latest_signals.csv
-          EMAIL_FORCE_SEND: ${{ vars.EMAIL_FORCE_SEND }}
+          EMAIL_FORCE_SEND: "true"
           EMAIL_ENABLED: "true"
           SMTP_HOST: smtp.gmail.com
           SMTP_PORT: "465"
