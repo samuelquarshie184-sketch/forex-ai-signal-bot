@@ -1,0 +1,43 @@
+name: Forex AI signal email update
+
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+
+jobs:
+  scan-and-email:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run signal scan and send email
+        env:
+          SYMBOLS: ${{ vars.SYMBOLS }}
+          TIMEFRAME: ${{ vars.TIMEFRAME }}
+          PERIOD: ${{ vars.PERIOD }}
+          MIN_SIGNAL_STRENGTH: ${{ vars.MIN_SIGNAL_STRENGTH }}
+          SIGNAL_OUTPUT: latest_signals.csv
+          EMAIL_FORCE_SEND: ${{ vars.EMAIL_FORCE_SEND }}
+          EMAIL_ENABLED: "true"
+          SMTP_HOST: smtp.gmail.com
+          SMTP_PORT: "465"
+          SMTP_USER: ${{ secrets.SMTP_USER }}
+          SMTP_PASSWORD: ${{ secrets.SMTP_PASSWORD }}
+          EMAIL_TO: ${{ secrets.EMAIL_TO }}
+        run: python github_actions_signal_email.py
