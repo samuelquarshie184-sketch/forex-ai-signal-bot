@@ -18,7 +18,7 @@ from pathlib import Path
 from typing import Optional
 
 import pandas as pd
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, Body
 from fastapi.responses import PlainTextResponse
 
 from forex_ai_bot import bridge_line, normalize_symbol, scan_symbols, signals_from_env, send_email_alert
@@ -91,7 +91,27 @@ def _run_bridge_scan():
         execute=False,
     )
 
+@app.post("/push")
+def push_signals(payload=Body(...), secret: Optional[str] = Query(default=None)):
+    """Receive latest signals from GitHub Actions and save them for MT5 EA."""
+    _check_secret(secret)
 
+    signals = payload.get("signals", payload) if isinstance(payload, dict) else payload
+
+    if not isinstance(signals, list):
+        raise HTTPException(
+            status_code=400,
+            detail="Body must be a list of signals or {'signals': [...]}"
+        )
+
+    output_path = os.getenv("SIGNAL_OUTPUT", "latest_signals.csv")
+    pd.DataFrame(signals).to_csv(output_path, index=False)
+
+    return {
+        "status": "saved",
+        "count": len(signals),
+        "output_path": output_path
+    }
 @app.get("/scan")
 def scan(secret: Optional[str] = Query(default=None)):
     _check_secret(secret)
@@ -103,10 +123,18 @@ def scan(secret: Optional[str] = Query(default=None)):
 def scan_email(secret: Optional[str] = Query(default=None), force: bool = Query(default=True)):
     _check_secret(secret)
     signals = _run_bridge_scan()
-    email_sent = send_email_alert(signals, force=force)
+
+    try:
+        email_sent = send_email_alert(signals, force=force)
+        email_error = None
+    except Exception as exc:
+        email_sent = False
+        email_error = str(exc)
+
     return {
         "count": len(signals),
         "email_sent": email_sent,
+        "email_error": email_error,
         "force": force,
         "signals": signals
     }
