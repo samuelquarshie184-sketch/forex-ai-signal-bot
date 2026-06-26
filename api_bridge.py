@@ -21,7 +21,7 @@ import pandas as pd
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import PlainTextResponse
 
-from forex_ai_bot import bridge_line, normalize_symbol, scan_symbols, signals_from_env
+from forex_ai_bot import bridge_line, normalize_symbol, scan_symbols, signals_from_env, send_email_alert
 
 app = FastAPI(title="Forex AI Bot Bridge", version="0.1.0")
 
@@ -80,10 +80,8 @@ def latest_json(symbol: str = "EURUSD", secret: Optional[str] = Query(default=No
     return _load_signal(symbol)
 
 
-@app.get("/scan")
-def scan(secret: Optional[str] = Query(default=None)):
-    _check_secret(secret)
-    signals = scan_symbols(
+def _run_bridge_scan():
+    return scan_symbols(
         symbols=signals_from_env(),
         period=os.getenv("PERIOD", "180d"),
         timeframe=os.getenv("TIMEFRAME", "1h"),
@@ -92,4 +90,23 @@ def scan(secret: Optional[str] = Query(default=None)):
         email=False,
         execute=False,
     )
+
+
+@app.get("/scan")
+def scan(secret: Optional[str] = Query(default=None)):
+    _check_secret(secret)
+    signals = _run_bridge_scan()
     return {"count": len(signals), "signals": signals}
+
+
+@app.get("/scan-email")
+def scan_email(secret: Optional[str] = Query(default=None), force: bool = Query(default=True)):
+    _check_secret(secret)
+    signals = _run_bridge_scan()
+    email_sent = send_email_alert(signals, force=force)
+    return {
+        "count": len(signals),
+        "email_sent": email_sent,
+        "force": force,
+        "signals": signals
+    }
