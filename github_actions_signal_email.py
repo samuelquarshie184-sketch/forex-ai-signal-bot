@@ -11,6 +11,7 @@ import os
 from datetime import datetime, timezone
 
 import pandas as pd
+import requests
 
 from forex_ai_bot import scan_symbols, send_email_alert, signals_from_env
 
@@ -43,7 +44,20 @@ def main() -> None:
         email=False,
         execute=False,
     )
+    bridge_base_url = os.getenv("BRIDGE_BASE_URL", "").rstrip("/")
+    bridge_secret = os.getenv("API_SHARED_SECRET", "")
 
+    if bridge_base_url and bridge_secret:
+        try:
+            push_url = f"{bridge_base_url}/push?secret={bridge_secret}"
+            response = requests.post(push_url, json=signals, timeout=60)
+            print("Bridge push status:", response.status_code)
+            print(response.text[:1000])
+            response.raise_for_status()
+        except Exception as exc:
+            print("WARNING: Could not push signals to Render bridge:", repr(exc))
+    else:
+        print("Bridge push skipped because BRIDGE_BASE_URL or API_SHARED_SECRET is missing.")
     print(pd.DataFrame(signals).to_string(index=False))
 
     # For a scheduled update, users asked for email after every update.
